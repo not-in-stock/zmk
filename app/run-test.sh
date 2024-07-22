@@ -16,11 +16,11 @@ fi
 testcases=$(find $path -name native_posix_64.keymap -exec dirname \{\} \;)
 num_cases=$(echo "$testcases" | wc -l)
 if [ $num_cases -gt 1 ] || [ "$testcases" != "$path" ]; then
-    echo "" > ./build/tests/pass-fail.log
-    echo "$testcases" | xargs -L 1 -P ${J:-4} ./run-test.sh
-    err=$?
+      mkdir -p ./build/tests/ && echo "" > ./build/tests/pass-fail.log
+      echo "$testcases" | xargs -L 1 -P ${J:-4} ./run-test.sh
+      err=$?
     sort -k2 ./build/tests/pass-fail.log
-    exit $err
+      exit $err
 fi
 
 testcase="$path"
