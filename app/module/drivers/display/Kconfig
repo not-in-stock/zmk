@@ -3,6 +3,4 @@
 
 if DISPLAY
 
-rsource "Kconfig.il0323"
-
 endif # DISPLAY
