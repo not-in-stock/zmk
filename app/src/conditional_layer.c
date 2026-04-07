@@ -54,12 +54,20 @@ static bool conditional_layer_updates_needed;
 // Tracks which layers have been locked by conditional layer activations.
 static uint32_t layer_locked_by_conditional = 0;
 
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+static void conditional_layer_activate(int8_t layer, bool locking, bool momentary) {
+#else
 static void conditional_layer_activate(int8_t layer, bool locking) {
+#endif
     // This may trigger another event that could, in turn, activate additional then-layers. However,
     // the process will eventually terminate (at worst, when every layer is active).
     if (!zmk_keymap_layer_active(layer) || (locking && !zmk_keymap_layer_locked(layer))) {
         LOG_DBG("layer %d", layer);
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+        zmk_keymap_layer_activate(layer, locking, momentary);
+#else
         zmk_keymap_layer_activate(layer, locking);
+#endif
     }
 }
 
@@ -87,6 +95,9 @@ static int layer_state_changed_listener(const zmk_event_t *ev) {
         int8_t max_then_layer = -1;
         uint32_t then_layers = 0;
         uint32_t then_layer_state = 0;
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+        uint32_t momentariness_state = 0;
+#endif
         conditional_layer_updates_needed = false;
 
         // On layer state changes, examines each conditional layer config to determine if then-layer
@@ -102,6 +113,11 @@ static int layer_state_changed_listener(const zmk_event_t *ev) {
             // also trigger activation of another.
             if ((zmk_keymap_layer_state() & mask) == mask) {
                 WRITE_BIT(then_layer_state, cfg->then_layer, true);
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+                if (zmk_keymap_layers_any_momentary(mask)) {
+                    momentariness_state |= BIT(cfg->then_layer);
+                }
+#endif
             }
             // Same as above, but for the lock status
             if ((zmk_keymap_layer_locks() & mask) == mask) {
@@ -113,7 +129,12 @@ static int layer_state_changed_listener(const zmk_event_t *ev) {
             if ((BIT(layer) & then_layers) != 0U) {
                 bool locking = (BIT(layer) & layer_locked_by_conditional) != 0U;
                 if ((BIT(layer) & then_layer_state) != 0U) {
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+                    bool momentary = BIT(layer) & momentariness_state;
+                    conditional_layer_activate(layer, locking, momentary);
+#else
                     conditional_layer_activate(layer, locking);
+#endif
                 } else {
                     conditional_layer_deactivate(layer, locking);
                     WRITE_BIT(layer_locked_by_conditional, layer, false);

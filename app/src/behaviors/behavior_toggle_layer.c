@@ -35,7 +35,11 @@ static int tog_keymap_binding_pressed(struct zmk_behavior_binding *binding,
     const struct behavior_tog_config *cfg = zmk_behavior_get_binding(binding->behavior_dev)->config;
     switch (cfg->toggle_mode) {
     case ON:
+#if IS_ENABLED(CONFIG_ZMK_TRACK_MOMENTARY_LAYERS)
+        return zmk_keymap_layer_activate(binding->param1, cfg->locking, false);
+#else
         return zmk_keymap_layer_activate(binding->param1, cfg->locking);
+#endif
     case OFF:
         return zmk_keymap_layer_deactivate(binding->param1, cfg->locking);
     case FLIP:
